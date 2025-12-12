@@ -3660,6 +3660,7 @@ bool titleScreen(void)
 
 bool newGame(void)
 {
+	const ulong initial_cash[] = { 10000, 15000, 20000, 30000 };
 	if (gameplaySelect())
 	{
 		if (episodeSelect() && difficultySelect())
@@ -3673,13 +3674,26 @@ bool newGame(void)
 
 			player[0].items.ship = 8;  // Stalker
 		}
+		else if (twoPlayerFullMode)
+		{
+			assert(episodeNum >= 1 && episodeNum <= EPISODE_AVAILABLE);
+			for (uint i = 0; i < COUNTOF(player); ++i)
+				player[i].cash = (richMode ? 1000000 : (initial_cash[episodeNum - 1] / 2));
+
+			player[0].items.ship = 11;  // Silver Ship
+			player[0].last_items = player[0].items;
+
+			difficultyLevel++;
+
+			inputDevice[0] = 1;
+			inputDevice[1] = 2;
+		}
 		else if (twoPlayerMode)
 		{
 			for (uint i = 0; i < COUNTOF(player); ++i)
-				player[i].cash = (!richMode ? 0 : (!twoPlayerFullMode ? 0 : 1000000));
+				player[i].cash = 0;
 
 			player[0].items.ship = 11;  // Silver Ship
-			if(twoPlayerFullMode) player[0].last_items = player[0].items;
 
 			difficultyLevel++;
 
@@ -3693,8 +3707,6 @@ bool newGame(void)
 		else if (gameLoaded)
 		{
 			// allows player to smuggle arcade/super-arcade ships into full game
-
-			const ulong initial_cash[] = { 10000, 15000, 20000, 30000 };
 
 			assert(episodeNum >= 1 && episodeNum <= EPISODE_AVAILABLE);
 			player[0].cash = initial_cash[episodeNum - 1];
