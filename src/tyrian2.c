@@ -2657,6 +2657,11 @@ new_game:
 							char buf[256];
 							strncpy(buf, (strlen(s) > 8) ? s + 8 : "", sizeof(buf));
 
+							if (twoPlayerFullMode && i == 1) {
+                                // If in two-player full mode, add "none" to available front weapons
+                                strncat(buf, " 0", sizeof(buf) - strlen(buf) - 1);
+							}
+
 							int j = 0, temp;
 							while (str_pop_int(buf, &temp))
 								itemAvail[i][j++] = temp;

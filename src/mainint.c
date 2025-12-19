@@ -1055,6 +1055,7 @@ void JE_initPlayerData(void)
 	player[0].last_items = player[0].items;
 
 	player[1].items = player[0].items;
+	player[1].items.weapon[FRONT_WEAPON].id = 0;  // None
 	player[1].items.weapon[REAR_WEAPON].id = 15;  // Vulcan Cannon
 	player[1].items.sidekick_level = 101;         // 101, 102, 103
 	player[1].items.sidekick_series = 0;          // None

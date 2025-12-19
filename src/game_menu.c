@@ -476,9 +476,25 @@ void JE_itemScreen(void)
 
 		if (curMenu == MENU_UPGRADE_SUB)
 		{
-			/* Move cursor until we hit either "Done" or a weapon the player can afford */
-			while (curSel[MENU_UPGRADE_SUB] < menuChoices[MENU_UPGRADE_SUB] &&
-			       JE_getCost(this_player, curSel[MENU_UPGRADES], itemAvail[itemAvailMap[curSel[MENU_UPGRADES]-2]-1][curSel[MENU_UPGRADE_SUB]-2]) > this_player->cash)
+			/* Move cursor until we hit either "Done" or a weapon the player can afford.
+				If we're in two player full game mode we skip the "none" selection if it will
+				leave a player with neither front or rear weapon at the same time */
+			while (
+				(
+					curSel[MENU_UPGRADE_SUB] < menuChoices[MENU_UPGRADE_SUB] &&
+					(
+						JE_getCost(this_player, curSel[MENU_UPGRADES], itemAvail[itemAvailMap[curSel[MENU_UPGRADES]-2]-1][curSel[MENU_UPGRADE_SUB]-2]) > this_player->cash ||
+						(
+							twoPlayerFullMode &&
+							itemAvail[itemAvailMap[curSel[MENU_UPGRADES] - 2] - 1][curSel[MENU_UPGRADE_SUB] - 2] == 0 &&
+							(
+								curSel[MENU_UPGRADES] == 3 && this_player->items.weapon[1].id == 0 ||
+								curSel[MENU_UPGRADES] == 4 && this_player->items.weapon[0].id == 0
+								)
+							)
+						)
+					)
+				)
 			{
 				curSel[MENU_UPGRADE_SUB] += lastDirection;
 				if (curSel[MENU_UPGRADE_SUB] < 2)
@@ -546,6 +562,13 @@ void JE_itemScreen(void)
 				int afford_shade = (temp_cost > this_player->cash) ? 4 : 0;  // can player afford current weapon at all
 
 				temp = itemAvail[itemAvailMap[curSel[MENU_UPGRADES]-2]-1][tempW-1]; /* Item ID */
+				if (twoPlayerFullMode && (curSel[MENU_UPGRADES] == 3 || curSel[MENU_UPGRADES] == 4) && tempW < menuChoices[MENU_UPGRADE_SUB] - 1 && temp == 0)
+				{
+                    /* If in two player full game mode, front / rear weapon, darken "none" if
+						it will leave player with neither front or rear weapon at the same time */
+					if(curSel[MENU_UPGRADES] == 3 && this_player->items.weapon[1].id == 0) afford_shade = 4;
+					if(curSel[MENU_UPGRADES] == 4 && this_player->items.weapon[0].id == 0) afford_shade = 4;
+				}
 				switch (curSel[MENU_UPGRADES]-1)
 				{
 					case 1: /* ship */
