@@ -30,7 +30,7 @@
 
 /* These are necessary because the size of the structure has changed from the original, but we
    need to know the original sizes in order to find things in TYRIAN.SAV */
-#define SAVE_FILES_SIZE 2398
+#define SAVE_FILES_SIZE 2398 + 26 /* 26 bytes added for two player full-mode storage */
 #define SIZEOF_SAVEGAMETEMP SAVE_FILES_SIZE + 4 + 100
 #define SAVE_FILE_SIZE (SIZEOF_SAVEGAMETEMP - 4)
 
@@ -79,14 +79,17 @@ typedef struct
 	JE_word       encode;
 	JE_word       level;
 	JE_PItemsType items;
+	JE_PItemsType items2;
 	JE_longint    score;
 	JE_longint    score2;
 	char          levelName[11]; /* string [9]; */ /* SYN: Added one more byte to match lastLevelName below */
 	JE_char       name[15]; /* [1..14] */ /* SYN: Added extra byte for null */
 	JE_byte       cubes;
 	JE_byte       power[2]; /* [1..2] */
+	JE_byte       power2[2]; /* [1..2] */
 	JE_byte       episode;
 	JE_PItemsType lastItems;
+	JE_PItemsType lastItems2;
 	JE_byte       difficulty;
 	JE_byte       secretHint;
 	JE_byte       input1;

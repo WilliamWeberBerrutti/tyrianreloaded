@@ -390,16 +390,15 @@ void JE_saveGame(JE_byte slot, const char *name)
 	else if (superArcadeMode == SA_NONE && onePlayerAction)
 		player[0].items.super_arcade_mode = SA_ARCADE;
 	else if (twoPlayerFullMode)
-		player[1].items.super_arcade_mode = SA_TWOPLAYERFULL;
+		player[0].items.super_arcade_mode = SA_TWOPLAYERFULL;
 	else
 		player[0].items.super_arcade_mode = superArcadeMode;
 	
 	playeritems_to_pitems(saveFiles[slot-1].items, &player[0].items, initial_episode_num);
+	playeritems_to_pitems(saveFiles[slot-1].items2, &player[1].items, initial_episode_num);
 	
-	if (twoPlayerMode)
-		playeritems_to_pitems(saveFiles[slot-1].lastItems, &player[1].items, 0);
-	else
-		playeritems_to_pitems(saveFiles[slot-1].lastItems, &player[0].last_items, 0);
+	playeritems_to_pitems(saveFiles[slot-1].lastItems, &player[0].last_items, 0);
+	playeritems_to_pitems(saveFiles[slot-1].lastItems2, &player[1].last_items, 0);
 	
 	saveFiles[slot-1].score  = player[0].cash;
 	saveFiles[slot-1].score2 = player[1].cash;
@@ -427,11 +426,11 @@ void JE_saveGame(JE_byte slot, const char *name)
 	saveFiles[slot-1].input2 = inputDevice[1];
 
 	strcpy(saveFiles[slot-1].name, name);
-	
+
 	for (uint port = 0; port < 2; ++port)
 	{
-		// if two-player, use first player's front and second player's rear weapon
-		saveFiles[slot-1].power[port] = player[twoPlayerMode ? port : 0].items.weapon[port].power;
+		saveFiles[slot-1].power[port] = player[0].items.weapon[port].power;
+		saveFiles[slot-1].power2[port] = player[1].items.weapon[port].power;
 	}
 	
 	JE_saveConfiguration();
@@ -450,31 +449,30 @@ void JE_loadGame(JE_byte slot)
 	gameHasRepeated   = saveFiles[slot-1].gameHasRepeated;
 	twoPlayerMode     = (slot-1) > 10;
 	difficultyLevel   = saveFiles[slot-1].difficulty;
-	
+
 	pitems_to_playeritems(&player[0].items, saveFiles[slot-1].items, &initial_episode_num);
-	
+	pitems_to_playeritems(&player[1].items, saveFiles[slot-1].items2, NULL);
+
 	superArcadeMode = player[0].items.super_arcade_mode;
-	
+	if (superArcadeMode == SA_TWOPLAYERFULL)
+	{
+		superArcadeMode = SA_NONE;
+		twoPlayerFullMode = true;
+	}
 	if (superArcadeMode == SA_SUPERTYRIAN)
 		superTyrian = true;
 	if (superArcadeMode != SA_NONE)
 		onePlayerAction = true;
 	if (superArcadeMode > SA_NORTSHIPZ)
 		superArcadeMode = SA_NONE;
-	
+
 	if (twoPlayerMode)
 	{
 		onePlayerAction = false;
-		
-		pitems_to_playeritems(&player[1].items, saveFiles[slot-1].lastItems, NULL);
-		twoPlayerFullMode = player[1].items.super_arcade_mode == SA_TWOPLAYERFULL;
-		player[0].last_items = player[0].items;
-		player[1].last_items = player[1].items;
 	}
-	else
-	{
-		pitems_to_playeritems(&player[0].last_items, saveFiles[slot-1].lastItems, NULL);
-	}
+
+	pitems_to_playeritems(&player[0].last_items, saveFiles[slot-1].lastItems, NULL);
+	pitems_to_playeritems(&player[1].last_items, saveFiles[slot-1].lastItems2, NULL);
 
 	/* Compatibility with old version */
 	if (player[1].items.sidekick_level < 101)
@@ -496,8 +494,8 @@ void JE_loadGame(JE_byte slot)
 
 	for (uint port = 0; port < 2; ++port)
 	{
-		// if two-player, use first player's front and second player's rear weapon
-		player[twoPlayerMode ? port : 0].items.weapon[port].power = saveFiles[slot-1].power[port];
+		player[0].items.weapon[port].power = saveFiles[slot-1].power[port];
+		player[1].items.weapon[port].power = saveFiles[slot-1].power2[port];
 	}
 	
 	int episode = saveFiles[slot-1].episode;
@@ -864,6 +862,7 @@ void JE_loadConfiguration(void)
 			saveFiles[z].level = SDL_SwapLE16(saveFiles[z].level);
 			
 			memcpy(&saveFiles[z].items, p, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
+			memcpy(&saveFiles[z].items2, p, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
 			
 			memcpy(&saveFiles[z].score, p, sizeof(JE_longint)); p += 4;
 			saveFiles[z].score = SDL_SwapLE32(saveFiles[z].score);
@@ -882,8 +881,10 @@ void JE_loadConfiguration(void)
 			
 			memcpy(&saveFiles[z].cubes, p, sizeof(JE_byte)); p++;
 			memcpy(&saveFiles[z].power, p, sizeof(JE_byte) * 2); p += 2;
+			memcpy(&saveFiles[z].power2, p, sizeof(JE_byte) * 2); p += 2;
 			memcpy(&saveFiles[z].episode, p, sizeof(JE_byte)); p++;
 			memcpy(&saveFiles[z].lastItems, p, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
+			memcpy(&saveFiles[z].lastItems2, p, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
 			memcpy(&saveFiles[z].difficulty, p, sizeof(JE_byte)); p++;
 			memcpy(&saveFiles[z].secretHint, p, sizeof(JE_byte)); p++;
 			memcpy(&saveFiles[z].input1, p, sizeof(JE_byte)); p++;
@@ -971,6 +972,7 @@ void JE_saveConfiguration(void)
 		memcpy(p, &tempSaveFile.level, sizeof(JE_word)); p += 2;
 		
 		memcpy(p, &tempSaveFile.items, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
+		memcpy(p, &tempSaveFile.items2, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
 		
 		tempSaveFile.score = SDL_SwapLE32(tempSaveFile.score);
 		memcpy(p, &tempSaveFile.score, sizeof(JE_longint)); p += 4;
@@ -990,8 +992,10 @@ void JE_saveConfiguration(void)
 		
 		memcpy(p, &tempSaveFile.cubes, sizeof(JE_byte)); p++;
 		memcpy(p, &tempSaveFile.power, sizeof(JE_byte) * 2); p += 2;
+		memcpy(p, &tempSaveFile.power2, sizeof(JE_byte) * 2); p += 2;
 		memcpy(p, &tempSaveFile.episode, sizeof(JE_byte)); p++;
 		memcpy(p, &tempSaveFile.lastItems, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
+		memcpy(p, &tempSaveFile.lastItems2, sizeof(JE_PItemsType)); p += sizeof(JE_PItemsType);
 		memcpy(p, &tempSaveFile.difficulty, sizeof(JE_byte)); p++;
 		memcpy(p, &tempSaveFile.secretHint, sizeof(JE_byte)); p++;
 		memcpy(p, &tempSaveFile.input1, sizeof(JE_byte)); p++;
